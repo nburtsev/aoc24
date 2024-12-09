@@ -1,4 +1,4 @@
-defmodule Day1 do
+defmodule Day4 do
   def solution(path) do
     {:ok, contents} = File.read(path)
 
@@ -70,5 +70,5 @@ defmodule Day1 do
   end
 end
 
-Day1.solution("input_test.txt")
-Day1.solution("input.txt")
+Day4.solution("input_test.txt")
+Day4.solution("input.txt")
