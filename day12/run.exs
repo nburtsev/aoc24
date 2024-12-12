@@ -25,104 +25,40 @@ defmodule Day10 do
     |> IO.inspect()
   end
 
-  @neighbors [{1, 0}, {-1, 0}, {0, 1}, {0, -1}]
-
   defp count_sides(region) do
     region
     |> Enum.map(&is_a_corner(&1, region))
-    # |> IO.inspect()
     |> Enum.sum()
   end
 
-  defp top_left_corner({x, y}, region) do
+  defp check_corner(neighbors, {x, y}, region) do
+    [diagonal, side1, side2] =
+      Enum.map(neighbors, &Enum.member?(region, {x + elem(&1, 0), y + elem(&1, 1)}))
+
     cond do
-      Enum.member?(region, {x - 1, y - 1}) ->
-        cond do
-          not Enum.member?(region, {x, y - 1}) and not Enum.member?(region, {x - 1, y}) -> 1
-          true -> 0
-        end
-
-      Enum.member?(region, {x, y - 1}) and Enum.member?(region, {x - 1, y}) ->
-        1
-
-      not Enum.member?(region, {x, y - 1}) and not Enum.member?(region, {x - 1, y}) ->
-        1
-
-      true ->
-        0
-    end
-  end
-
-  defp top_right_corner({x, y}, region) do
-    cond do
-      Enum.member?(region, {x + 1, y - 1}) ->
-        cond do
-          not Enum.member?(region, {x, y - 1}) and not Enum.member?(region, {x + 1, y}) -> 1
-          true -> 0
-        end
-
-      Enum.member?(region, {x, y - 1}) and Enum.member?(region, {x + 1, y}) ->
-        1
-
-      not Enum.member?(region, {x, y - 1}) and not Enum.member?(region, {x + 1, y}) ->
-        1
-
-      true ->
-        0
-    end
-  end
-
-  defp bottom_left_corner({x, y}, region) do
-    cond do
-      Enum.member?(region, {x - 1, y + 1}) ->
-        cond do
-          not Enum.member?(region, {x, y + 1}) and not Enum.member?(region, {x - 1, y}) -> 1
-          true -> 0
-        end
-
-      Enum.member?(region, {x, y + 1}) and Enum.member?(region, {x - 1, y}) ->
-        1
-
-      not Enum.member?(region, {x, y + 1}) and not Enum.member?(region, {x - 1, y}) ->
-        1
-
-      true ->
-        0
-    end
-  end
-
-  defp bottom_right_corner({x, y}, region) do
-    cond do
-      Enum.member?(region, {x + 1, y + 1}) ->
-        cond do
-          not Enum.member?(region, {x, y + 1}) and not Enum.member?(region, {x + 1, y}) -> 1
-          true -> 0
-        end
-
-      Enum.member?(region, {x, y + 1}) and Enum.member?(region, {x + 1, y}) ->
-        1
-
-      not Enum.member?(region, {x, y + 1}) and not Enum.member?(region, {x + 1, y}) ->
-        1
-
-      true ->
-        0
+      diagonal and not side1 and not side2 -> 1
+      not diagonal and side1 and side2 -> 1
+      not diagonal and not side1 and not side2 -> 1
+      true -> 0
     end
   end
 
   defp is_a_corner(cell, region) do
-    Enum.reduce(
-      [&top_left_corner/2, &top_right_corner/2, &bottom_left_corner/2, &bottom_right_corner/2],
-      0,
-      fn func, acc ->
-        acc + func.(cell, region)
-      end
-    )
+    [
+      [{-1, -1}, {0, -1}, {-1, 0}],
+      [{1, -1}, {0, -1}, {1, 0}],
+      [{-1, 1}, {-1, 0}, {0, 1}],
+      [{1, 1}, {0, 1}, {1, 0}]
+    ]
+    |> Enum.map(&check_corner(&1, cell, region))
+    |> Enum.sum()
   end
 
   defp calculate_area(region) do
     length(region)
   end
+
+  @neighbors [{1, 0}, {-1, 0}, {0, 1}, {0, -1}]
 
   defp calculate_perimeter(region) do
     region
