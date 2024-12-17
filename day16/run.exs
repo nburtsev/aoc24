@@ -1,4 +1,6 @@
 defmodule Day16 do
+  @directions %{0 => {1, 0}, 1 => {0, -1}, 2 => {-1, 0}, 3 => {0, 1}}
+
   def solution(path) do
     input =
       File.read(path)
@@ -18,66 +20,76 @@ defmodule Day16 do
     start = {1, my - 2}
     finish = {mx - 2, 1}
 
-    initial_queue = :gb_trees.from_orddict([{0, {start, 0, 0, 0, matrix}}])
+    heap = Heap.min() |> Heap.push({0, start, 0, []})
 
-    explore_paths(initial_queue, finish, [])
-    # |> Enum.map(fn {steps, turns} -> steps + turns * 1000 end)
-    # |> Enum.min()
-    |> IO.inspect()
+    min_cost = :infinity
+    {min_cost, paths} = dijkstra(matrix, heap, finish, MapSet.new(), [], min_cost)
+
+    IO.puts("Part 1: #{min_cost}")
+    IO.puts("Parth 2: #{(paths |> Enum.flat_map(&elem(&1, 1)) |> Enum.uniq() |> length()) + 1}")
   end
 
-  # east, south, west, north
-  @directions %{0 => {1, 0}, 1 => {0, -1}, 2 => {-1, 0}, 3 => {0, 1}}
+  def dijkstra(map, heap, finish, visited, paths, min_cost) do
+    case Heap.empty?(heap) do
+      true ->
+        {min_cost, paths}
+
+      false ->
+        {{cost, {x, y}, dir, path}, rest} = Heap.split(heap)
+
+        if cost > min_cost do
+          dijkstra(map, rest, finish, visited, paths, min_cost)
+        else
+          next_visited = MapSet.put(visited, {x, y, dir})
+
+          {next_heap, min_cost, next_paths} =
+            if {x, y} == finish do
+              min_cost = cost
+              {rest, min_cost, [{cost, path} | paths]}
+            else
+              next_heap =
+                [dir, turn_left(dir), turn_right(dir)]
+                |> Enum.map(fn new_dir ->
+                  {dx, dy} = @directions[new_dir]
+                  cost = if dir == new_dir, do: cost + 1, else: cost + 1001
+                  {cost, {x + dx, y + dy}, new_dir, [{x, y} | path]}
+                end)
+                |> Enum.reject(fn {_, {x, y}, new_dir, _} ->
+                  Map.get(map, {x, y}) == "#" or {x, y, new_dir} in next_visited or
+                    cost > min_cost
+                end)
+                |> Enum.reduce(rest, fn state, heap -> Heap.push(heap, state) end)
+
+              {next_heap, min_cost, paths}
+            end
+
+          dijkstra(map, next_heap, finish, next_visited, next_paths, min_cost)
+        end
+    end
+  end
 
   def turn_left(dir) do
     dir = dir - 1
-    if dir < 0, do: 3, else: dir
+
+    if dir < 0 do
+      3
+    else
+      dir
+    end
   end
 
   def turn_right(dir) do
     dir = dir + 1
-    if dir > 3, do: 0, else: dir
-  end
 
-  def explore_paths(queue, finish, paths) do
-    if :gb_trees.is_empty(queue) do
-      paths
+    if dir > 3 do
+      0
     else
-      {_, {pos, dir, steps, turns, matrix}, rest} = :gb_trees.take_smallest(queue)
-
-      {updated_queue, updated_paths} =
-        if pos == finish do
-          {rest, [{steps, turns} | paths]}
-        else
-          next_steps =
-            [
-              move(pos, dir, steps, turns, matrix),
-              move(pos, turn_left(dir), steps, turns + 1, matrix),
-              move(pos, turn_right(dir), steps, turns + 1, matrix)
-            ]
-            |> Enum.filter(fn {pos, _, _, _, matrix} ->
-              Map.get(matrix, pos) != "#" and Map.get(matrix, pos) != "O"
-            end)
-            |> Enum.reduce(rest, fn next, acc ->
-              {_, _, steps, turns, _} = next
-              :gb_trees.enter(steps + turns * 1000, next, acc)
-            end)
-
-          {next_steps, paths}
-        end
-
-      explore_paths(updated_queue, finish, updated_paths)
+      dir
     end
-  end
-
-  def move(pos, dir, steps, turns, matrix) do
-    {dx, dy} = @directions[dir]
-    {x, y} = pos
-    next_pos = {x + dx, y + dy}
-    {next_pos, dir, steps + 1, turns, Map.update(matrix, pos, "", fn _ -> "O" end)}
   end
 end
 
+Mix.install([{:heap, "~> 3.0.0"}])
 Day16.solution("input_test.txt")
 Day16.solution("input_test2.txt")
-# Day16.solution("input.txt")
+Day16.solution("input.txt")
